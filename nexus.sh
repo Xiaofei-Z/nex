@@ -24,8 +24,6 @@ LOG_FILE="$HOME/nexus.log"
 CONFIG_FILE="$NEXUS_HOME/config.json"
 MAX_LOG_SIZE=$((10 * 1024 * 1024)) # 10MB
 REPO_URL="https://github.com/nexus-xyz/nexus-cli.git"
-SCRIPT_URL="https://raw.githubusercontent.com/Xiaofei-Z/nex/main/nexus.sh"
-LOCAL_SCRIPT="$NEXUS_HOME/nexus.sh"
 
 # Ensure Nexus config directory exists
 mkdir -p "$NEXUS_HOME"
@@ -319,26 +317,34 @@ check_updates() {
 
 # --- Desktop Shortcut ---
 
-update_local_script() {
-  log "${BLUE}Updating local script copy...${NC}"
-  curl -fsSL "$SCRIPT_URL" -o "$LOCAL_SCRIPT"
-  chmod +x "$LOCAL_SCRIPT"
-}
-
 create_desktop_shortcut() {
   local desktop_dir="$HOME/Desktop"
   if [[ ! -d "$desktop_dir" ]]; then
     return
   fi
 
-  log "${BLUE}Creating desktop shortcut...${NC}"
+  log "${BLUE}Creating desktop shortcut for direct node startup...${NC}"
+
+  # Determine which command to use
+  local start_cmd=""
+  if check_command nexus-cli; then
+    start_cmd="nexus-cli start --node-id $NODE_ID_TO_USE"
+  elif check_command nexus-network; then
+    start_cmd="nexus-network start --node-id $NODE_ID_TO_USE"
+  else
+    log "${YELLOW}Nexus binary not found, skipping shortcut creation.${NC}"
+    return
+  fi
 
   if [[ "$OS_TYPE" == "macOS" ]]; then
     local shortcut_path="$desktop_dir/Start Nexus Node.command"
     cat <<EOF > "$shortcut_path"
 #!/bin/bash
+cd ~
 echo "🚀 Starting Nexus Node..."
-"$LOCAL_SCRIPT"
+$start_cmd
+echo "Process exited."
+read -n 1
 EOF
     chmod +x "$shortcut_path"
     log "${GREEN}Shortcut created at: $shortcut_path${NC}"
@@ -350,7 +356,7 @@ EOF
 Type=Application
 Name=Nexus Node
 Comment=Start Nexus Node
-Exec=bash "$LOCAL_SCRIPT"
+Exec=bash -c "$start_cmd; exec bash"
 Icon=utilities-terminal
 Terminal=true
 Categories=Utility;
@@ -404,7 +410,6 @@ main() {
   configure_node_id
   
   # 3. Initial Start
-  update_local_script
   create_desktop_shortcut
   cleanup_process "restart"
   start_node
