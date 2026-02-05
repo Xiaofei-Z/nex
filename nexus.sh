@@ -25,6 +25,7 @@ CONFIG_FILE="$NEXUS_HOME/config.json"
 MAX_LOG_SIZE=$((10 * 1024 * 1024)) # 10MB
 REPO_URL="https://github.com/nexus-xyz/nexus-cli.git"
 SCRIPT_URL="https://raw.githubusercontent.com/Xiaofei-Z/nex/main/nexus.sh"
+LOCAL_SCRIPT="$NEXUS_HOME/nexus.sh"
 
 # Ensure Nexus config directory exists
 mkdir -p "$NEXUS_HOME"
@@ -318,6 +319,12 @@ check_updates() {
 
 # --- Desktop Shortcut ---
 
+update_local_script() {
+  log "${BLUE}Updating local script copy...${NC}"
+  curl -fsSL "$SCRIPT_URL" -o "$LOCAL_SCRIPT"
+  chmod +x "$LOCAL_SCRIPT"
+}
+
 create_desktop_shortcut() {
   local desktop_dir="$HOME/Desktop"
   if [[ ! -d "$desktop_dir" ]]; then
@@ -331,7 +338,7 @@ create_desktop_shortcut() {
     cat <<EOF > "$shortcut_path"
 #!/bin/bash
 echo "🚀 Starting Nexus Node..."
-bash <(curl -fsSL $SCRIPT_URL)
+"$LOCAL_SCRIPT"
 EOF
     chmod +x "$shortcut_path"
     log "${GREEN}Shortcut created at: $shortcut_path${NC}"
@@ -343,7 +350,7 @@ EOF
 Type=Application
 Name=Nexus Node
 Comment=Start Nexus Node
-Exec=bash -c "bash <(curl -fsSL $SCRIPT_URL); exec bash"
+Exec=bash "$LOCAL_SCRIPT"
 Icon=utilities-terminal
 Terminal=true
 Categories=Utility;
@@ -397,6 +404,7 @@ main() {
   configure_node_id
   
   # 3. Initial Start
+  update_local_script
   create_desktop_shortcut
   cleanup_process "restart"
   start_node
