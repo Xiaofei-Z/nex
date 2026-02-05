@@ -325,9 +325,12 @@ start_node() {
     # Position calculation logic preserved for UX consistency
     local script_content="cd ~ && echo \"🚀 Starting Nexus Node...\" && nexus-network start --node-id $NODE_ID_TO_USE; echo \"Process exited.\"; read -n 1"
     
+    # Escape double quotes for AppleScript string
+    local applescript_cmd=${script_content//\"/\\\"}
+
     osascript <<EOF
 tell application "Terminal"
-  do script "$script_content"
+  do script "$applescript_cmd"
   activate
 end tell
 EOF
